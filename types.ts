@@ -4,7 +4,7 @@ export enum Department {
   XUE_CHU = '學出',
   YE_WU = '業務',
   CHAN_PIN = '產品',
-  ICHEERS = '佳釀'
+  ICHEERS = '佳釀',
   BOSS = '老闆本人'
 }
 
