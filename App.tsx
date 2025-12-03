@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { 
   Plus, Trash2, LogOut, BarChart2, List as ListIcon, 
-  CheckCircle, Wand2, ArrowRight,
+  CheckCircle,
   Calendar, Clock, Grid, Users, Code, Bug, HelpCircle, 
   Minus, Tag, MessageSquare, X, Save, Download, FileDown,
   ChevronLeft, ChevronRight, LayoutDashboard, Search
@@ -12,7 +12,6 @@ import {
 
 import { Task, Department, EventType, UserProfile, Template } from './types';
 import { StorageService } from './services/storageService';
-import { GeminiService } from './services/geminiService';
 import { DEPARTMENT_COLORS, DEFAULT_TEMPLATES, PRODUCT_LIST } from './constants';
 import { Button } from './components/Button';
 import { BottomSheet } from './components/BottomSheet';
@@ -248,8 +247,6 @@ export default function App() {
   // UI State
   const [showDeptSheet, setShowDeptSheet] = useState(false);
   const [showProductSheet, setShowProductSheet] = useState(false);
-  const [smartInput, setSmartInput] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Initialize
@@ -275,23 +272,6 @@ export default function App() {
     setProduct('');
     setHours(1.0);
     // Keep date/dept/event as they are usually repeated
-  };
-
-  const handleSmartParse = async () => {
-    if (!smartInput.trim()) return;
-    setIsAiLoading(true);
-    const result = await GeminiService.parseTask(smartInput);
-    if (result) {
-      setDept(result.department);
-      setEventType(result.eventType);
-      setProduct(result.product || '');
-      setDescription(result.description);
-      setHours(result.hours);
-      setSmartInput('');
-    } else {
-      alert("AI 無法辨識，請手動輸入");
-    }
-    setIsAiLoading(false);
   };
 
   const handleAddTask = () => {
@@ -457,31 +437,6 @@ export default function App() {
             {/* LEFT COLUMN: AI + Templates + History (Desktop 5 cols) */}
             <div className="md:col-span-5 space-y-6">
               
-              {/* AI Smart Parse */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
-                <div className="flex items-center gap-2 mb-3 opacity-90">
-                  <Wand2 size={18} />
-                  <span className="text-sm font-bold uppercase tracking-wider">AI 智慧解析</span>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={smartInput}
-                    onChange={(e) => setSmartInput(e.target.value)}
-                    placeholder="例如：跟業務開會討論 AL 產品 2小時..."
-                    className="w-full h-12 pl-4 pr-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-blue-100 focus:outline-none focus:bg-white/30 transition-all"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSmartParse()}
-                  />
-                  <button 
-                    onClick={handleSmartParse}
-                    disabled={isAiLoading || !smartInput}
-                    className="absolute right-2 top-2 p-2 bg-white text-blue-600 rounded-lg shadow-sm hover:bg-blue-50 transition-colors disabled:opacity-50"
-                  >
-                    {isAiLoading ? <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" /> : <ArrowRight size={16} />}
-                  </button>
-                </div>
-              </div>
-
               {/* Quick Templates (Moved from Right) */}
               <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
                   {DEFAULT_TEMPLATES.map(t => (
