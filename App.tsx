@@ -284,7 +284,7 @@ export default function App() {
   if (!user) return <LoginScreen onLogin={handleLogin} />;
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] font-sans pb-24 md:pb-6">
+    <div className="h-screen bg-[#f1f5f9] font-sans pb-24md:pb-6">
       
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-20">

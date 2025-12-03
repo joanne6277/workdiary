@@ -9,7 +9,7 @@ export const DEPARTMENT_COLORS: Record<Department, string> = {
   [Department.XUE_CHU]: '#8b5cf6', // Violet
   [Department.YE_WU]: '#f59e0b', // Amber
   [Department.CHAN_PIN]: '#ec4899', // Pink
-  [Department.ICHEERS]: '#1e293b', // Slate/Black
+  [Department.ICHEERS]: '#411414ff', // Slate/Dark Red
   [Department.BOSS]: '#1e293b', // Slate/Black
 };
 
@@ -20,38 +20,38 @@ export const PRODUCT_LIST = [
 export const DEFAULT_TEMPLATES: Template[] = [
   {
     id: 't1',
-    label: '學發會議',
+    label: '合約諮詢',
     department: Department.XUE_FA,
-    eventType: EventType.MEETING,
-    defaultHours: 1.0,
-    defaultDescription: '例行進度同步',
+    eventType: EventType.CONSULTING,
+    defaultHours: 0.25,
+    defaultDescription: '合約問題諮詢',
     icon: 'Users'
   },
   {
     id: 't2',
-    label: '業務諮詢',
+    label: '業務討論',
     department: Department.YE_WU,
-    eventType: EventType.CONSULTING,
+    eventType: EventType.MEETING,
     defaultHours: 0.5,
     defaultDescription: '客戶需求確認',
     icon: 'HelpCircle'
   },
   {
     id: 't3',
-    label: '產品討論',
-    department: Department.CHAN_PIN,
+    label: '老闆指示',
+    department: Department.BOSS,
     eventType: EventType.MEETING,
-    defaultHours: 1.5,
-    defaultDescription: '規格確認',
+    defaultHours: 1,
+    defaultDescription: '',
     icon: 'Code'
   },
   {
     id: 't4',
-    label: '圖服支援',
-    department: Department.TU_FU,
+    label: '學出諮詢',
+    department: Department.XUE_CHU,
     eventType: EventType.CONSULTING,
-    defaultHours: 0.25,
-    defaultDescription: '素材調整',
+    defaultHours: 0.5,
+    defaultDescription: '',
     icon: 'Bug'
   }
 ];
