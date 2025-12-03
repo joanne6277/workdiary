@@ -281,6 +281,20 @@ export default function App() {
     setShowExportSheet(false);
   };
 
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    if (percent < 0.05) return null; // Hide for small slices
+    const radius = outerRadius * 1.2;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text x={x} y={y} fill="black" textAnchor="middle" dominantBaseline="central" className="text-sm font-bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   if (!user) return <LoginScreen onLogin={handleLogin} />;
 
   return (
@@ -291,7 +305,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-blue-600 rounded-lg p-1.5"><Grid className="text-white w-5 h-5" /></div>
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight hidden md:block">EasyLog Cloud</h1>
+            <h1 className="text-xl font-bold text-slate-800 tracking-tight hidden md:block">牛馬a工作紀錄</h1>
           </div>
           <div className="hidden md:flex bg-slate-100 p-1 rounded-xl">
              <button onClick={() => setView('log')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'log' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>紀錄 Log</button>
@@ -323,26 +337,31 @@ export default function App() {
                   ))}
                </div>
                
-               {/* 雲端資料預覽 (Loading State) */}
-               <div className="hidden md:block bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
-                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18} className="text-slate-400"/>近期雲端紀錄</h3>
-                  {isLoading ? (
-                    <div className="text-center py-4 text-slate-400">載入中...</div>
-                  ) : (
-                    <div className="space-y-3">
-                        {tasks.slice(0, 5).map(task => (
-                            <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                <div className="w-1 h-8 rounded-full" style={{ backgroundColor: DEPARTMENT_COLORS[task.department] }} />
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-xs text-slate-400 mb-0.5">{task.date}</div>
-                                    <div className="text-sm font-medium text-slate-700 truncate">{task.description}</div>
+              {/* Pending Cart */}
+              {pendingTasks.length > 0 && (
+                <div className="bg-white rounded-3xl shadow-xl border border-blue-100 overflow-hidden animate-fade-in-up">
+                    <div className="bg-blue-50/50 p-4 border-b border-blue-100 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{pendingTasks.length}</div>
+                            <span className="font-bold text-blue-900">待上傳清單</span>
+                        </div>
+                    </div>
+                    <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto custom-scrollbar">
+                        {pendingTasks.map((task, idx) => (
+                            <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="text-xs font-bold text-slate-400">{task.department} · {task.eventType}</span>
+                                    <span className="font-bold text-slate-800">{task.hours}h</span>
                                 </div>
-                                <div className="font-bold text-slate-500 text-sm">{task.hours}h</div>
+                                <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
                             </div>
                         ))}
                     </div>
-                  )}
-               </div>
+                    <div className="p-4 bg-slate-50 border-t border-slate-100">
+                        <Button fullWidth variant="success" icon={<CheckCircle size={18} />} onClick={handleSubmitAll}>確認上傳雲端 (Upload)</Button>
+                    </div>
+                </div>
+              )}
             </div>
 
             {/* RIGHT: Input Form */}
@@ -404,31 +423,6 @@ export default function App() {
                 <Button fullWidth size="lg" onClick={handleAddToPending} icon={<Plus size={20} />}>加入待提交清單</Button>
               </div>
               
-              {/* Pending Cart */}
-              {pendingTasks.length > 0 && (
-                <div className="bg-white rounded-3xl shadow-xl border border-blue-100 overflow-hidden animate-fade-in-up">
-                    <div className="bg-blue-50/50 p-4 border-b border-blue-100 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <div className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{pendingTasks.length}</div>
-                            <span className="font-bold text-blue-900">待上傳清單</span>
-                        </div>
-                    </div>
-                    <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto custom-scrollbar">
-                        {pendingTasks.map((task, idx) => (
-                            <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className="text-xs font-bold text-slate-400">{task.department} · {task.eventType}</span>
-                                    <span className="font-bold text-slate-800">{task.hours}h</span>
-                                </div>
-                                <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="p-4 bg-slate-50 border-t border-slate-100">
-                        <Button fullWidth variant="success" icon={<CheckCircle size={18} />} onClick={handleSubmitAll}>確認上傳雲端 (Upload)</Button>
-                    </div>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -456,7 +450,17 @@ export default function App() {
                         {chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
-                            <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                            <Pie 
+                                data={chartData} 
+                                cx="50%" 
+                                cy="50%" 
+                                innerRadius={60} 
+                                outerRadius={80} 
+                                paddingAngle={5} 
+                                dataKey="value"
+                                labelLine={false}
+                                label={renderCustomizedLabel}
+                            >
                                 {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={DEPARTMENT_COLORS[entry.name]} stroke="none" />))}
                             </Pie>
                             <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}/>
