@@ -80,3 +80,71 @@ export const SupabaseService = {
     if (error) console.error('Error deleting task:', error);
   }
 };
+// 在 src/services/supabaseService.ts 裡面加入：
+
+  // 5. 讀取模板
+  fetchTemplates: async (userName: string): Promise<Template[]> => {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*')
+      .eq('user_name', userName)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching templates:', error);
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      label: row.label,
+      department: row.department,
+      eventType: row.event_type,
+      defaultProduct: row.default_product || '',
+      defaultDescription: row.default_description || '',
+      defaultHours: row.default_hours,
+      icon: row.icon || 'Star'
+    }));
+  },
+
+  // 6. 新增模板
+  addTemplate: async (template: Omit<Template, 'id'>, userName: string) => {
+    const { data, error } = await supabase
+      .from('templates')
+      .insert([
+        {
+          user_name: userName,
+          label: template.label,
+          department: template.department,
+          event_type: template.eventType,
+          default_product: template.defaultProduct || null,
+          default_description: template.defaultDescription,
+          default_hours: template.defaultHours,
+          icon: template.icon
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding template:', error);
+      return null;
+    }
+    // 回傳完整物件 (包含 ID)
+    return {
+        id: data.id,
+        label: data.label,
+        department: data.department,
+        eventType: data.event_type,
+        defaultProduct: data.default_product,
+        defaultDescription: data.default_description,
+        defaultHours: data.default_hours,
+        icon: data.icon
+    };
+  },
+
+  // 7. 刪除模板
+  deleteTemplate: async (id: string) => {
+    const { error } = await supabase.from('templates').delete().eq('id', id);
+    if (error) console.error('Error deleting template:', error);
+  }
