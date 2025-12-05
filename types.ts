@@ -8,17 +8,18 @@ export enum Department {
   BOSS = '老闆本人'
 }
 
-export enum EventType {
-  MEETING = '會議',
-  CONSULTING = '諮詢',
-  OTHER = '其他' // 新增其他選項
+export type EventType = string;
+
+export interface EventTypeItem {
+  id: string;
+  name: string;
 }
 
 export interface Task {
   id: string;
   date: string; // YYYY-MM-DD
-  department: Department;
-  eventType: EventType;
+  department: string;
+  eventType: string;
   product?: string; // Optional
   description: string;
   hours: number;
@@ -41,3 +42,10 @@ export interface Template {
   defaultDescription: string;
   icon: string;
 }
+
+export interface TagItem {
+  id: string;
+  category: 'department' | 'eventType' | 'product';
+  label: string;
+  color?: string;
+  }

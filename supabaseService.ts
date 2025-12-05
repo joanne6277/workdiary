@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Task, Department, EventType } from './types';
+import { Task, Department, EventType, Template, TagItem, EventTypeItem } from './types';
 
 export const SupabaseService = {
   // 1. 讀取任務 (只抓這個人的)
@@ -78,5 +78,150 @@ export const SupabaseService = {
       .eq('id', id);
 
     if (error) console.error('Error deleting task:', error);
+  },
+   // --- TEMPLATES ---
+  fetchTemplates: async (userName: string): Promise<Template[]> => {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*')
+      .eq('user_name', userName)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching templates:', error);
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      label: row.label,
+      department: row.department,
+      eventType: row.event_type,
+      defaultProduct: row.default_product || '',
+      defaultDescription: row.default_description || '',
+      defaultHours: row.default_hours,
+      icon: row.icon || 'Star'
+    }));
+  },
+
+  addTemplate: async (template: Omit<Template, 'id'>, userName: string) => {
+    const { data, error } = await supabase
+      .from('templates')
+      .insert([{
+        user_name: userName,
+        label: template.label,
+        department: template.department,
+        event_type: template.eventType,
+        default_product: template.defaultProduct || null,
+        default_description: template.defaultDescription,
+        default_hours: template.defaultHours,
+        icon: template.icon
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding template:', error);
+      return null;
+    }
+    return {
+        id: data.id,
+        label: data.label,
+        department: data.department,
+        eventType: data.event_type,
+        defaultProduct: data.default_product,
+        defaultDescription: data.default_description,
+        defaultHours: data.default_hours,
+        icon: data.icon
+    };
+  },
+
+  deleteTemplate: async (id: string) => {
+    const { error } = await supabase.from('templates').delete().eq('id', id);
+    if (error) console.error('Error deleting template:', error);
+  },
+
+  // --- TAGS (Settings) ---
+  fetchTags: async (userName: string): Promise<TagItem[]> => {
+    // 這裡我們做一個特殊的邏輯：讀取 "default" (系統預設) + "userName" (個人自訂) 的標籤
+    const { data, error } = await supabase
+      .from('tags')
+      .select('*')
+      .or(`user_name.eq.${userName},user_name.eq.default`)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching tags:', error);
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      category: row.category,
+      label: row.label,
+      color: row.color
+    }));
+  },
+
+  addTag: async (tag: Omit<TagItem, 'id'>, userName: string) => {
+    const { data, error } = await supabase
+      .from('tags')
+      .insert([{
+        user_name: userName,
+        category: tag.category,
+        label: tag.label,
+        color: tag.color
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding tag:', error);
+      return null;
+    }
+    return {
+      id: data.id,
+      category: data.category,
+      label: data.label,
+      color: data.color
+    };
+  },
+
+  deleteTag: async (id: string) => {
+    const { error } = await supabase.from('tags').delete().eq('id', id);
+    if (error) console.error('Error deleting tag:', error);
+  },
+
+  // --- Event Types ---
+  fetchEventTypes: async (): Promise<EventTypeItem[]> => {
+    const { data, error } = await supabase
+      .from('event_types')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching event types:', error);
+      return [];
+    }
+    return data;
+  },
+
+  addEventType: async (name: string): Promise<EventTypeItem | null> => {
+    const { data, error } = await supabase
+      .from('event_types')
+      .insert([{ name }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding event type:', error);
+      return null;
+    }
+    return data;
+  },
+
+  deleteEventType: async (id: string) => {
+    const { error } = await supabase.from('event_types').delete().eq('id', id);
+    if (error) console.error('Error deleting event type:', error);
   }
 };

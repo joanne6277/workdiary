@@ -9,14 +9,14 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-import { Task, Department, EventType, UserProfile, Template } from './types';
-import { StorageService } from './services/storageService'; // 留著用來記「登入狀態」
-import { SupabaseService } from './supabaseService'; // 新的資料庫服務
+import { Task, Department, EventType, UserProfile, Template, EventTypeItem } from './types';
+import { StorageService } from './services/storageService';
+import { SupabaseService } from './supabaseService';
 import { DEPARTMENT_COLORS, DEFAULT_TEMPLATES, PRODUCT_LIST } from './constants';
 import { Button } from './components/Button';
 import { BottomSheet } from './components/BottomSheet';
 
-// --- Auth Component (無變更) ---
+// --- Auth Component ---
 const LoginScreen = ({ onLogin }: { onLogin: (name: string) => void }) => {
   const [name, setName] = useState('');
   
@@ -55,12 +55,93 @@ const LoginScreen = ({ onLogin }: { onLogin: (name: string) => void }) => {
   );
 };
 
-// --- Edit Task Modal Component (無變更) ---
+// --- Add Template Form Component ---
+const AddTemplateForm = ({ onAdd, eventTypes }: { onAdd: (template: Omit<Template, 'id'>) => void, eventTypes: EventTypeItem[] }) => {
+  const [label, setLabel] = useState('');
+  const [department, setDepartment] = useState<Department>(Department.TU_FU);
+  const [eventType, setEventType] = useState<EventType>(eventTypes[0]?.name || '');
+  const [defaultProduct, setDefaultProduct] = useState('');
+  const [defaultHours, setDefaultHours] = useState(1);
+  const [defaultDescription, setDefaultDescription] = useState('');
+  const [icon, setIcon] = useState('Code');
+
+  useEffect(() => {
+    if (eventTypes.length > 0 && !eventType) {
+      setEventType(eventTypes[0].name);
+    }
+  }, [eventTypes, eventType]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!label) {
+      alert('請輸入範本名稱');
+      return;
+    }
+    onAdd({
+      label,
+      department,
+      eventType,
+      defaultProduct,
+      defaultHours,
+      defaultDescription,
+      icon,
+    });
+    // Reset form
+    setLabel('');
+    setDefaultProduct('');
+    setDefaultHours(1);
+    setDefaultDescription('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg bg-slate-50">
+      <h4 className="font-bold">新增範本</h4>
+      <input type="text" placeholder="範本名稱" value={label} onChange={e => setLabel(e.target.value)} className="w-full p-2 border rounded" />
+      <select value={department} onChange={e => setDepartment(e.target.value as Department)} className="w-full p-2 border rounded">
+        {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
+      </select>
+      <select value={eventType} onChange={e => setEventType(e.target.value as EventType)} className="w-full p-2 border rounded">
+        {eventTypes.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
+      </select>
+      <input type="text" placeholder="預設產品 (可選)" value={defaultProduct} onChange={e => setDefaultProduct(e.target.value)} className="w-full p-2 border rounded" />
+      <input type="number" placeholder="預設時數" value={defaultHours} onChange={e => setDefaultHours(parseFloat(e.target.value) || 0)} className="w-full p-2 border rounded" />
+      <textarea placeholder="預設內容" value={defaultDescription} onChange={e => setDefaultDescription(e.target.value)} className="w-full p-2 border rounded" />
+      <input type="text" placeholder="圖示 (e.g., Code, Bug)" value={icon} onChange={e => setIcon(e.target.value)} className="w-full p-2 border rounded" />
+      <Button type="submit" fullWidth>新增範本</Button>
+    </form>
+  );
+};
+
+// --- Add Event Type Form Component ---
+const AddEventTypeForm = ({ onAdd }: { onAdd: (name: string) => void }) => {
+  const [name, setName] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name) {
+      alert('請輸入事件類型名稱');
+      return;
+    }
+    onAdd(name);
+    setName('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg bg-slate-50">
+      <h4 className="font-bold">新增事件類型</h4>
+      <input type="text" placeholder="事件類型名稱" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded" />
+      <Button type="submit" fullWidth>新增事件類型</Button>
+    </form>
+  );
+};
+
+// --- Edit Task Modal Component ---
 const EditTaskModal = ({ 
-  task, isOpen, onClose, onSave, onDelete 
+  task, isOpen, onClose, onSave, onDelete, eventTypes
 }: { 
   task: Task | null, isOpen: boolean, onClose: () => void, 
-  onSave: (t: Task) => void, onDelete: (id: string) => void
+  onSave: (t: Task) => void, onDelete: (id: string) => void,
+  eventTypes: EventTypeItem[]
 }) => {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
 
@@ -100,8 +181,8 @@ const EditTaskModal = ({
            <div className="space-y-1">
              <label className="text-xs font-bold text-slate-400 uppercase">事件類型</label>
              <div className="flex bg-slate-100 p-1 rounded-xl">
-               {Object.values(EventType).map(type => (
-                 <button key={type} onClick={() => setEditedTask({ ...editedTask, eventType: type })} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${editedTask.eventType === type ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{type}</button>
+               {eventTypes.map(type => (
+                 <button key={type.id} onClick={() => setEditedTask({ ...editedTask, eventType: type.name })} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${editedTask.eventType === type.name ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{type.name}</button>
                ))}
              </div>
            </div>
@@ -126,17 +207,17 @@ const EditTaskModal = ({
 // --- Main App Component ---
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [view, setView] = useState<'log' | 'report'>('log');
+  const [view, setView] = useState<'log' | 'report' | 'settings'>('log');
   
   // Data State
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [pendingTasks, setPendingTasks] = useState<Task[]>([]); // 暫存區 (尚未提交到 DB)
-  const [isLoading, setIsLoading] = useState(false); // 讀取狀態
+  const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Form State
   const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dept, setDept] = useState<Department>(Department.TU_FU);
-  const [eventType, setEventType] = useState<EventType>(EventType.MEETING);
+  const [eventType, setEventType] = useState<EventType>('');
   const [product, setProduct] = useState<string>('');
   const [description, setDescription] = useState('');
   const [hours, setHours] = useState(1.0);
@@ -150,16 +231,20 @@ export default function App() {
   const [showProductSheet, setShowProductSheet] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // 1. 初始化檢查登入 & 抓取資料
+  // Settings state
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
+
   useEffect(() => {
     const loadedUser = StorageService.getUser();
     if (loadedUser?.isAuthenticated) {
       setUser(loadedUser);
       loadTasksFromSupabase(loadedUser.name);
+      loadTemplatesFromSupabase(loadedUser.name);
+      loadEventTypesFromSupabase();
     }
   }, []);
 
-  // 封裝抓取資料的函式
   const loadTasksFromSupabase = async (userName: string) => {
     setIsLoading(true);
     const data = await SupabaseService.fetchTasks(userName);
@@ -167,18 +252,59 @@ export default function App() {
     setIsLoading(false);
   };
 
+  const loadTemplatesFromSupabase = async (userName: string) => {
+    const data = await SupabaseService.fetchTemplates(userName);
+    setTemplates(data);
+  };
+
+  const loadEventTypesFromSupabase = async () => {
+    const data = await SupabaseService.fetchEventTypes();
+    setEventTypes(data);
+  };
+
   const handleLogin = (name: string) => {
     const newUser = { name, id: Date.now().toString(), isAuthenticated: true };
-    StorageService.saveUser(newUser); // Session 存本地
+    StorageService.saveUser(newUser);
     setUser(newUser);
-    loadTasksFromSupabase(name); // 資料從雲端抓
+    loadTasksFromSupabase(name);
+    loadTemplatesFromSupabase(name);
+    loadEventTypesFromSupabase();
   };
 
   const handleLogout = () => {
     StorageService.clearUser();
     setUser(null);
     setTasks([]);
+    setTemplates([]);
+    setEventTypes([]);
   };
+
+  const handleAddTemplate = async (template: Omit<Template, 'id'>) => {
+    if (!user) return;
+    const newTemplate = await SupabaseService.addTemplate(template, user.name);
+    if (newTemplate) {
+      setTemplates([...templates, newTemplate]);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    await SupabaseService.deleteTemplate(id);
+    setTemplates(templates.filter(t => t.id !== id));
+  };
+
+  const handleAddEventType = async (name: string) => {
+    const newEventType = await SupabaseService.addEventType(name);
+    if (newEventType) {
+      setEventTypes([...eventTypes, newEventType]);
+    }
+  };
+
+  const handleDeleteEventType = async (id: string) => {
+    await SupabaseService.deleteEventType(id);
+    setEventTypes(eventTypes.filter(et => et.id !== id));
+  };
+
+
 
   const resetForm = () => {
     setDescription('');
@@ -186,14 +312,13 @@ export default function App() {
     setHours(1.0);
   };
 
-  // 加入「待提交清單」 (還沒存到 DB)
   const handleAddToPending = () => {
     if (!description.trim()) {
       alert("請輸入工作內容");
       return;
     }
     const newTask: Task = {
-      id: `temp-${Date.now()}`, // 臨時 ID
+      id: `temp-${Date.now()}`,
       date: currentDate,
       department: dept,
       eventType,
@@ -207,35 +332,27 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 真正寫入資料庫 (Submit All)
   const handleSubmitAll = async () => {
     if (!user) return;
     
-    // 顯示 Loading 或鎖住按鈕可加在這裡
     try {
-      // 一筆一筆寫入 (為了簡單起見)
       for (const task of pendingTasks) {
         await SupabaseService.addTask(task, user.name);
       }
       
       alert("🎉 成功上傳雲端！");
-      setPendingTasks([]); // 清空暫存
-      loadTasksFromSupabase(user.name); // 重新抓取最新資料
+      setPendingTasks([]);
+      loadTasksFromSupabase(user.name);
     } catch (e) {
       alert("上傳失敗，請檢查網路");
     }
   };
 
-  // 更新單筆 (DB)
   const handleUpdateTask = async (updatedTask: Task) => {
-    // 先樂觀更新前端 (看起來比較快)
     setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-    
     await SupabaseService.updateTask(updatedTask);
-    // 可以在這裡重抓一次確保一致，或相信前端
   };
 
-  // 刪除單筆 (DB)
   const handleDeleteTask = async (taskId: string) => {
     if (window.confirm('確定要刪除嗎？')) {
       setTasks(prev => prev.filter(t => t.id !== taskId));
@@ -253,7 +370,6 @@ export default function App() {
     if (formElement) window.scrollTo({ top: formElement.offsetTop, behavior: 'smooth' });
   };
 
-  // --- Report Logic ---
   const monthlyTasks = useMemo(() => {
     return tasks.filter(t => t.date.startsWith(viewMonth));
   }, [tasks, viewMonth]);
@@ -272,7 +388,6 @@ export default function App() {
     setViewMonth(d.toISOString().slice(0, 7));
   };
 
-  // CSV Export logic (沿用 StorageService 的 export 還是要自己寫都行，這裡沿用)
   const handleExport = () => {
     if (!exportStart || !exportEnd) return alert("請輸入日期");
     const filtered = tasks.filter(t => t.date >= exportStart && t.date <= exportEnd);
@@ -283,24 +398,24 @@ export default function App() {
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    if (percent < 0.05) return null; // Hide for small slices
+    if (percent < 0.05) return null;
     const radius = outerRadius * 1.2;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
     return (
       <text x={x} y={y} fill="black" textAnchor="middle" dominantBaseline="central" className="text-sm font-bold">
-        {`${(percent * 100).toFixed(0)}%`}
+        {` ${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
 
-  if (!user) return <LoginScreen onLogin={handleLogin} />;
+  if (!user) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   return (
     <div className="h-screen bg-[#f1f5f9] font-sans pb-24md:pb-6">
-      
-      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -310,6 +425,7 @@ export default function App() {
           <div className="hidden md:flex bg-slate-100 p-1 rounded-xl">
              <button onClick={() => setView('log')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'log' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>紀錄 Log</button>
              <button onClick={() => setView('report')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'report' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>報表 Reports</button>
+             <button onClick={() => setView('settings')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'settings' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>設定 Settings</button>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-500 hidden md:inline">Hi, {user.name}</span>
@@ -321,7 +437,6 @@ export default function App() {
       <main className="max-w-6xl mx-auto px-4 mt-6">
         {view === 'log' && (
           <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8">
-            {/* LEFT: Templates & History */}
             <div className="md:col-span-5 space-y-6">
                <div className="grid grid-cols-2 gap-3">
                   {DEFAULT_TEMPLATES.map(t => (
@@ -337,7 +452,6 @@ export default function App() {
                   ))}
                </div>
                
-              {/* Pending Cart */}
               {pendingTasks.length > 0 && (
                 <div className="bg-white rounded-3xl shadow-xl border border-blue-100 overflow-hidden animate-fade-in-up">
                     <div className="bg-blue-50/50 p-4 border-b border-blue-100 flex justify-between items-center">
@@ -364,14 +478,12 @@ export default function App() {
               )}
             </div>
 
-            {/* RIGHT: Input Form */}
             <div className="md:col-span-7 space-y-6">
               <div id="log-form" className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
                 <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                   <Calendar className="text-slate-400" size={20} />
                   <input type="date" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="bg-transparent font-bold text-slate-700 outline-none flex-1" />
                 </div>
-                {/* Dept & Product */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-1">部門</label>
@@ -394,21 +506,18 @@ export default function App() {
                         </button>
                     </div>
                 </div>
-                {/* EventType */}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">事件類型</label>
                     <div className="bg-slate-100 p-1.5 rounded-2xl flex h-[62px]">
-                        {Object.values(EventType).map(type => (
-                            <button key={type} onClick={() => setEventType(type)} className={`flex-1 rounded-xl text-sm font-bold transition-all ${eventType === type ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}>{type}</button>
+                        {eventTypes.map(type => (
+                            <button key={type.id} onClick={() => setEventType(type.name)} className={`flex-1 rounded-xl text-sm font-bold transition-all ${eventType === type.name ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}>{type.name}</button>
                         ))}
                     </div>
                 </div>
-                {/* Desc */}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">工作內容</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="做了什麼..." rows={3} className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 text-lg placeholder:text-slate-300 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"/>
                 </div>
-                {/* Hours */}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">時數</label>
                     <div className="flex items-center gap-3">
@@ -422,14 +531,12 @@ export default function App() {
                 </div>
                 <Button fullWidth size="lg" onClick={handleAddToPending} icon={<Plus size={20} />}>加入待提交清單</Button>
               </div>
-              
             </div>
           </div>
         )}
 
         {view === 'report' && (
            <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8 h-full">
-              {/* Report Header */}
               <div className="md:col-span-12 flex items-center justify-between mb-2">
                  <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-slate-100">
                     <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><ChevronLeft size={20} /></button>
@@ -442,7 +549,6 @@ export default function App() {
                  <button onClick={() => setShowExportSheet(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm"><Download size={16} />匯出 Excel</button>
               </div>
 
-              {/* Report Charts */}
               <div className="md:col-span-4 space-y-6">
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
                     <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-6 w-full text-left">工時分佈</h3>
@@ -472,7 +578,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Report List (DB Data) */}
               <div className="md:col-span-8 space-y-4">
                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                     <div className="p-4 border-b border-slate-100 bg-slate-50/50">
@@ -501,13 +606,54 @@ export default function App() {
               </div>
            </div>
         )}
+
+// ... (inside settings view)
+        {view === 'settings' && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">參數設定</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
+                <h3 className="text-lg font-bold">常用工作項目</h3>
+                <AddTemplateForm onAdd={handleAddTemplate} eventTypes={eventTypes} />
+                <div className="mt-4">
+                  <h4 className="font-bold mb-2">現有範本</h4>
+                  <ul>
+                    {templates.map(t => (
+                      <li key={t.id} className="flex justify-between items-center p-2 border-b">
+                        <span>{t.label}</span>
+                        <button onClick={() => handleDeleteTemplate(t.id)}><Trash2 size={16} /></button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
+                <h3 className="text-lg font-bold">事件類型管理</h3>
+                <AddEventTypeForm onAdd={handleAddEventType} />
+                <div className="mt-4">
+                  <h4 className="font-bold mb-2">現有事件類型</h4>
+                  <ul>
+                    {eventTypes.map(et => (
+                      <li key={et.id} className="flex justify-between items-center p-2 border-b">
+                        <span>{et.name}</span>
+                        <button onClick={() => handleDeleteEventType(et.id)}><Trash2 size={16} /></button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Sheets & Modals */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-100 flex justify-around items-center h-20 pb-4 z-40 shadow-sm">
         <button onClick={() => setView('log')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'log' ? 'text-blue-600' : 'text-slate-400'}`}><Plus size={28} strokeWidth={2.5} /><span className="text-[10px] font-bold">紀錄</span></button>
         <div className="w-px h-8 bg-slate-100"></div>
         <button onClick={() => setView('report')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'report' ? 'text-blue-600' : 'text-slate-400'}`}><BarChart2 size={28} strokeWidth={2.5} /><span className="text-[10px] font-bold">報表</span></button>
+        <div className="w-px h-8 bg-slate-100"></div>
+        <button onClick={() => setView('settings')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'settings' ? 'text-blue-600' : 'text-slate-400'}`}><Code size={28} strokeWidth={2.5} /><span className="text-[10px] font-bold">設定</span></button>
       </nav>
       <BottomSheet isOpen={showDeptSheet} onClose={() => setShowDeptSheet(false)} title="選擇部門">
         <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0">{Object.values(Department).map((d) => (<button key={d} onClick={() => { setDept(d); setShowDeptSheet(false); }} className={`p-4 rounded-xl font-bold text-lg border-2 transition-all flex items-center justify-between ${dept === d ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200'}`}><span>{d}</span><div className="w-3 h-3 rounded-full" style={{ backgroundColor: DEPARTMENT_COLORS[d] }} /></button>))}</div>
@@ -524,7 +670,7 @@ export default function App() {
            <Button fullWidth onClick={handleExport} icon={<FileDown size={20}/>}>下載 CSV</Button>
         </div>
       </BottomSheet>
-      <EditTaskModal task={editingTask} isOpen={!!editingTask} onClose={() => setEditingTask(null)} onSave={handleUpdateTask} onDelete={handleDeleteTask}/>
+      <EditTaskModal task={editingTask} isOpen={!!editingTask} onClose={() => setEditingTask(null)} onSave={handleUpdateTask} onDelete={handleDeleteTask} eventTypes={eventTypes} />
     </div>
   );
 }
