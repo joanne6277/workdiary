@@ -91,19 +91,19 @@ const EditTaskModal = ({
              </div>
            </div>
            <div className="space-y-1">
+             <label className="text-xs font-bold text-slate-400 uppercase">產品別</label>
+             <select value={editedTask.product || ''} onChange={(e) => setEditedTask({ ...editedTask, product: e.target.value })} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+               <option value="">無 (None)</option>
+               {PRODUCT_LIST.map(p => (<option key={p} value={p}>{p}</option>))}
+             </select>
+           </div>
+           <div className="space-y-1">
              <label className="text-xs font-bold text-slate-400 uppercase">事件類型</label>
              <div className="flex bg-slate-100 p-1 rounded-xl">
                {Object.values(EventType).map(type => (
                  <button key={type} onClick={() => setEditedTask({ ...editedTask, eventType: type })} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${editedTask.eventType === type ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{type}</button>
                ))}
              </div>
-           </div>
-           <div className="space-y-1">
-             <label className="text-xs font-bold text-slate-400 uppercase">產品別</label>
-             <select value={editedTask.product || ''} onChange={(e) => setEditedTask({ ...editedTask, product: e.target.value })} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-               <option value="">無 (None)</option>
-               {PRODUCT_LIST.map(p => (<option key={p} value={p}>{p}</option>))}
-             </select>
            </div>
            <div className="space-y-1">
              <label className="text-xs font-bold text-slate-400 uppercase">工作內容</label>
@@ -371,7 +371,7 @@ export default function App() {
                   <Calendar className="text-slate-400" size={20} />
                   <input type="date" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="bg-transparent font-bold text-slate-700 outline-none flex-1" />
                 </div>
-                {/* Dept & EventType */}
+                {/* Dept & Product */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-1">部門</label>
@@ -384,24 +384,24 @@ export default function App() {
                         </button>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase ml-1">事件類型</label>
-                        <div className="bg-slate-100 p-1.5 rounded-2xl flex h-[62px]">
-                            {Object.values(EventType).map(type => (
-                                <button key={type} onClick={() => setEventType(type)} className={`flex-1 rounded-xl text-sm font-bold transition-all ${eventType === type ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}>{type}</button>
-                            ))}
-                        </div>
+                        <label className="text-xs font-bold text-slate-400 uppercase ml-1">產品別</label>
+                        <button onClick={() => setShowProductSheet(true)} className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-colors ${product ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
+                            <div className="flex items-center gap-3">
+                                <Tag className={product ? 'text-blue-500' : 'text-slate-400'} size={20} />
+                                <span className={`text-lg font-medium ${product ? 'text-blue-700' : 'text-slate-400'}`}>{product || "無 (None)"}</span>
+                            </div>
+                            <ChevronLeft className="-rotate-90 text-slate-400" size={20} />
+                        </button>
                     </div>
                 </div>
-                {/* Product */}
+                {/* EventType */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">產品別</label>
-                    <button onClick={() => setShowProductSheet(true)} className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-colors ${product ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
-                        <div className="flex items-center gap-3">
-                            <Tag className={product ? 'text-blue-500' : 'text-slate-400'} size={20} />
-                            <span className={`text-lg font-medium ${product ? 'text-blue-700' : 'text-slate-400'}`}>{product || "無 (None)"}</span>
-                        </div>
-                        <ChevronLeft className="-rotate-90 text-slate-400" size={20} />
-                    </button>
+                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">事件類型</label>
+                    <div className="bg-slate-100 p-1.5 rounded-2xl flex h-[62px]">
+                        {Object.values(EventType).map(type => (
+                            <button key={type} onClick={() => setEventType(type)} className={`flex-1 rounded-xl text-sm font-bold transition-all ${eventType === type ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}>{type}</button>
+                        ))}
+                    </div>
                 </div>
                 {/* Desc */}
                 <div className="space-y-2">

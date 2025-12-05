@@ -10,7 +10,8 @@ export enum Department {
 
 export enum EventType {
   MEETING = '會議',
-  CONSULTING = '諮詢'
+  CONSULTING = '諮詢',
+  OTHER = '其他' // 新增其他選項
 }
 
 export interface Task {
