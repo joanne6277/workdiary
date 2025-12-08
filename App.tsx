@@ -5,71 +5,83 @@ import {
 import { 
   Plus, Trash2, LogOut, BarChart2,
   CheckCircle, Calendar, Clock, Grid, Users, Code, Bug, HelpCircle, 
-  Minus, Tag, X, Save, Download, FileDown,
+  Minus, Tag, X, Save, Download, FileText, FileDown,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 import { Task, Department, EventType, UserProfile, Template, EventTypeItem } from './types';
 import { StorageService } from './services/storageService';
 import { SupabaseService } from './supabaseService';
-import { DEPARTMENT_COLORS, DEFAULT_TEMPLATES, PRODUCT_LIST, DEFAULT_EVENT_TYPES } from './constants';
+import { DEPARTMENT_COLORS, PRODUCT_LIST, DEFAULT_EVENT_TYPES } from './constants';
 import { Button } from './components/Button';
 import { BottomSheet } from './components/BottomSheet';
 
+const DEFAULT_TEMPLATES: Omit<Template, 'id'>[] = [
+  {
+    label: '合約諮詢',
+    department: Department.XUE_FA,
+    eventType: '諮詢',
+    defaultHours: 0.25,
+    defaultDescription: '合約問題諮詢',
+    icon: 'Users'
+  },
+  {
+    label: '業務討論',
+    eventType: '會議',
+    defaultHours: 0.5,
+    defaultDescription: '客戶需求確認',
+    icon: 'HelpCircle',
+    department: Department.TU_FU
+  },
+  {
+    label: '老闆指示',
+    department: Department.BOSS,
+    eventType: '會議',
+    defaultHours: 1,
+    defaultDescription: '',
+    icon: 'Code'
+  },
+  {
+    label: '學出諮詢',
+    department: Department.XUE_CHU,
+    eventType: '諮詢',
+    defaultHours: 0.5,
+    defaultDescription: '',
+    icon: 'Bug'
+  }
+];
+
+const Icon = ({ name, size = 24 }: { name: string, size?: number }) => {
+  switch (name) {
+    case 'Users':
+      return <Users size={size} />;
+    case 'HelpCircle':
+      return <HelpCircle size={size} />;
+    case 'Code':
+      return <Code size={size} />;
+    case 'Bug':
+      return <Bug size={size} />;
+    case 'FileText':
+      return <FileText size={size} />;
+  }
+};
+
+const AVAILABLE_ICONS = ['Users', 'HelpCircle', 'Code', 'Bug', 'FileText'];
+
 // --- Auth Component ---
 const LoginScreen = ({ onLogin }: { onLogin: (name: string) => void }) => {
-  const [name, setName] = useState('');
-  
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center space-y-6">
-        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Users size={40} className="text-blue-600" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">牛馬a工作紀錄</h1>
-          <p className="text-slate-500 mt-2">寫完這個就能下班了吧(・Д・)ノ</p>
-        </div>
-        
-        <div className="space-y-4 text-left">
-          <label className="block text-sm font-medium text-slate-700">哪位牛馬</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full h-14 px-4 rounded-xl border border-slate-200 bg-slate-50 text-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            placeholder="請輸入姓名"
-          />
-        </div>
-
-        <Button 
-          fullWidth 
-          size="lg" 
-          disabled={!name.trim()}
-          onClick={() => onLogin(name)}
-        >
-          開始使用
-        </Button>
-      </div>
-    </div>
-  );
+// ...
 };
 
 // --- Add Template Form Component ---
-const AddTemplateForm = ({ onAdd, eventTypes }: { onAdd: (template: Omit<Template, 'id'>) => void, eventTypes: EventTypeItem[] }) => {
+const AddTemplateForm = ({ onAdd, eventTypes, templates }: { onAdd: (template: Omit<Template, 'id'>) => void, eventTypes: EventTypeItem[], templates: Template[] }) => {
   const [label, setLabel] = useState('');
-  const [department, setDepartment] = useState<Department>(Department.TU_FU);
-  const [eventType, setEventType] = useState<EventType>(eventTypes[0]?.name || '');
+  const [department, setDepartment] = useState<Department | ''>('');
+  const [eventType, setEventType] = useState<EventType | ''>('');
   const [defaultProduct, setDefaultProduct] = useState('');
-  const [defaultHours, setDefaultHours] = useState(1);
+  const [defaultHours, setDefaultHours] = useState<number | ''>('');
   const [defaultDescription, setDefaultDescription] = useState('');
-  const [icon, setIcon] = useState('Code');
-
-  useEffect(() => {
-    if (eventTypes.length > 0 && !eventType) {
-      setEventType(eventTypes[0].name);
-    }
-  }, [eventTypes, eventType]);
+  const [icon, setIcon] = useState(AVAILABLE_ICONS[0]); // Default to the first icon
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,37 +89,92 @@ const AddTemplateForm = ({ onAdd, eventTypes }: { onAdd: (template: Omit<Templat
       alert('請輸入範本名稱');
       return;
     }
+    if (!department) {
+      alert('請選擇協作部門');
+      return;
+    }
+    if (!eventType) {
+      alert('請選擇事件類型');
+      return;
+    }
+    if (templates.length >= 6) {
+      alert('最多只能有六個範本');
+      return;
+    }
     onAdd({
       label,
       department,
       eventType,
       defaultProduct,
-      defaultHours,
+      defaultHours: typeof defaultHours === 'number' ? defaultHours : 1, // Default to 1 if empty
       defaultDescription,
       icon,
     });
     // Reset form
     setLabel('');
+    setDepartment('');
+    setEventType('');
     setDefaultProduct('');
-    setDefaultHours(1);
+    setDefaultHours('');
     setDefaultDescription('');
+    setIcon(AVAILABLE_ICONS[0]); // Reset icon to default
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg bg-slate-50">
       <h4 className="font-bold">新增範本</h4>
-      <input type="text" placeholder="範本名稱" value={label} onChange={e => setLabel(e.target.value)} className="w-full p-2 border rounded" />
-      <select value={department} onChange={e => setDepartment(e.target.value as Department)} className="w-full p-2 border rounded">
+      <input type="text" placeholder="請填寫範本名稱" value={label} onChange={e => setLabel(e.target.value)} className="w-full p-2 border rounded" disabled={templates.length >= 6} />
+      <select value={department} onChange={e => setDepartment(e.target.value as Department)} className="w-full p-2 border rounded" disabled={templates.length >= 6}>
+        <option value="" disabled>協作部門</option>
         {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
       </select>
-      <select value={eventType} onChange={e => setEventType(e.target.value as EventType)} className="w-full p-2 border rounded">
+      <select value={eventType} onChange={e => setEventType(e.target.value as EventType)} className="w-full p-2 border rounded" disabled={templates.length >= 6}>
+        <option value="" disabled>事件類型</option>
         {eventTypes.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
       </select>
-      <input type="text" placeholder="預設產品 (可選)" value={defaultProduct} onChange={e => setDefaultProduct(e.target.value)} className="w-full p-2 border rounded" />
-      <input type="number" placeholder="預設時數" value={defaultHours} onChange={e => setDefaultHours(parseFloat(e.target.value) || 0)} className="w-full p-2 border rounded" />
-      <textarea placeholder="預設內容" value={defaultDescription} onChange={e => setDefaultDescription(e.target.value)} className="w-full p-2 border rounded" />
-      <input type="text" placeholder="圖示 (e.g., Code, Bug)" value={icon} onChange={e => setIcon(e.target.value)} className="w-full p-2 border rounded" />
-      <Button type="submit" fullWidth>新增範本</Button>
+      <input type="text" placeholder="相關產品" value={defaultProduct} onChange={e => setDefaultProduct(e.target.value)} className="w-full p-2 border rounded" disabled={templates.length >= 6} />
+      <input 
+        type="number" 
+        placeholder="預設時數" 
+        step="0.25" 
+        min="0.25" 
+        max="10"
+        value={defaultHours} 
+        onChange={e => setDefaultHours(e.target.value === '' ? '' : parseFloat(e.target.value))} 
+        onBlur={(e) => {
+            const value = parseFloat(e.target.value);
+            if (e.target.value === '') return;
+            if (value < 0.25) {
+                setDefaultHours(0.25);
+            } else if (value > 10) {
+                setDefaultHours(10);
+            } else {
+                setDefaultHours(Math.round(value * 4) / 4);
+            }
+        }}
+        className="w-full p-2 border rounded" 
+        disabled={templates.length >= 6} 
+      />
+      <textarea placeholder="預設內容" value={defaultDescription} onChange={e => setDefaultDescription(e.target.value)} className="w-full p-2 border rounded" disabled={templates.length >= 6} />
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400 uppercase ml-1">選擇圖示</label>
+        <div className="grid grid-cols-5 gap-2">
+          {AVAILABLE_ICONS.map(iconName => (
+            <button
+              key={iconName}
+              type="button"
+              onClick={() => setIcon(iconName)}
+              className={`p-3 rounded-lg flex items-center justify-center transition-all ${icon === iconName ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              disabled={templates.length >= 6}
+            >
+              <Icon name={iconName} size={20} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <Button type="submit" fullWidth disabled={templates.length >= 6 || !label.trim()}>
+        {templates.length >= 6 ? '已達上限' : '新增範本'}
+      </Button>
     </form>
   );
 };
@@ -271,7 +338,15 @@ export default function App() {
 
   const loadTemplatesFromSupabase = async (userName: string) => {
     const data = await SupabaseService.fetchTemplates(userName);
-    setTemplates(data);
+    if (data.length === 0) {
+      for (const template of DEFAULT_TEMPLATES) {
+        await SupabaseService.addTemplate(template, userName);
+      }
+      const newData = await SupabaseService.fetchTemplates(userName);
+      setTemplates(newData);
+    } else {
+      setTemplates(data);
+    }
   };
 
   const loadUserEventTypesFromSupabase = async () => {
@@ -303,6 +378,10 @@ export default function App() {
 
   const handleAddTemplate = async (template: Omit<Template, 'id'>) => {
     if (!user) return;
+    if (templates.length >= 6) {
+      alert('最多只能有六個範本');
+      return;
+    }
     const newTemplate = await SupabaseService.addTemplate(template, user.name);
     if (newTemplate) {
       setTemplates([...templates, newTemplate]);
@@ -360,6 +439,10 @@ export default function App() {
     setPendingTasks([...pendingTasks, newTask]);
     resetForm();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRemovePendingTask = (id: string) => {
+    setPendingTasks(pendingTasks.filter(task => task.id !== id));
   };
 
   const handleSubmitAll = async () => {
@@ -466,17 +549,14 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         {view === 'log' && (
-          <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8">
+          <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8 gap-y-6">
             <div className="md:col-span-5 lg:col-span-4 space-y-6">
-               <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">快速帶入資料</h3>
+               <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">常用工作項目</h3>
                <div className="grid grid-cols-2 gap-4">
-                  {DEFAULT_TEMPLATES.map(t => (
+                  {templates.map(t => (
                     <button key={t.id} onClick={() => handleApplyTemplate(t)} className="flex flex-col items-center justify-center p-4 bg-white border border-transparent rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all text-center gap-2 group active:scale-95">
                       <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                        {t.icon === 'Users' && <Users size={24} />}
-                        {t.icon === 'HelpCircle' && <HelpCircle size={24} />}
-                        {t.icon === 'Code' && <Code size={24} />}
-                        {t.icon === 'Bug' && <Bug size={24} />}
+                        <Icon name={t.icon} size={24} />
                       </div>
                       <span className="text-sm font-bold text-slate-700">{t.label}</span>
                     </button>
@@ -493,12 +573,17 @@ export default function App() {
                     </div>
                     <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto custom-scrollbar">
                         {pendingTasks.map((task, idx) => (
-                            <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className="text-xs font-bold text-slate-400">{task.department} · {task.eventType}</span>
-                                    <span className="font-bold text-slate-800">{task.hours}h</span>
+                            <div key={idx} className="p-4 hover:bg-slate-50 transition-colors flex items-start justify-between">
+                                <div className="flex-1 min-w-0 pr-4">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="text-xs font-bold text-slate-400">{task.department} · {task.eventType}</span>
+                                        <span className="font-bold text-slate-800">{task.hours}h</span>
+                                    </div>
+                                    <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
                                 </div>
-                                <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
+                                <button onClick={() => handleRemovePendingTask(task.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors shrink-0">
+                                    <Trash2 size={20} />
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -510,7 +595,8 @@ export default function App() {
             </div>
 
             <div className="md:col-span-7 lg:col-span-8 space-y-6">
-              <div id="log-form" className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 space-y-6 border border-slate-200/50">
+              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">新增工作紀錄</h3>
+              <div id="log-form" className="bg-white rounded-2xl shadow-sm p-5 sm:p-5 space-y-6 border border-slate-200/50">
                 <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                   <Calendar className="text-slate-400" size={20} />
                   <input type="date" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="bg-transparent font-bold text-slate-700 outline-none flex-1" />
@@ -552,12 +638,37 @@ export default function App() {
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">時數</label>
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setHours(Math.max(0.25, hours - 0.25))} className="w-14 h-14 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"><Minus size={20} /></button>
+                        <button onClick={() => setHours(prev => Math.max(0.25, prev - 0.25))} className="w-14 h-14 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"><Minus size={20} /></button>
                         <div className="flex-1 relative">
-                            <input type="number" step="0.25" min="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} className="w-full h-14 text-center text-2xl font-bold text-blue-600 bg-blue-50/80 border-2 border-blue-100/80 rounded-xl outline-none focus:ring-2 focus:ring-blue-300"/>
+                            <input 
+                                type="number" 
+                                step="0.25" 
+                                min="0.25" 
+                                max="10"
+                                value={hours} 
+                                onChange={(e) => {
+                                    const value = parseFloat(e.target.value);
+                                    if (isNaN(value)) {
+                                        setHours(0.25);
+                                    } else if (value > 10) {
+                                        setHours(10);
+                                    } else {
+                                        setHours(value);
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    const value = parseFloat(e.target.value);
+                                    if (value < 0.25) {
+                                        setHours(0.25);
+                                    } else {
+                                        // Round to nearest 0.25
+                                        setHours(Math.round(value * 4) / 4);
+                                    }
+                                }}
+                                className="w-full h-14 text-center text-2xl font-bold text-blue-600 bg-blue-50/80 border-2 border-blue-100/80 rounded-xl outline-none focus:ring-2 focus:ring-blue-300"/>
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 font-medium">hr</span>
                         </div>
-                        <button onClick={() => setHours(hours + 0.25)} className="w-14 h-14 flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95 transition-all"><Plus size={20} /></button>
+                        <button onClick={() => setHours(prev => Math.min(10, prev + 0.25))} className="w-14 h-14 flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95 transition-all"><Plus size={20} /></button>
                     </div>
                 </div>
                 <Button fullWidth size="lg" onClick={handleAddToPending} icon={<Plus size={20} />}>加入待提交清單</Button>
@@ -581,7 +692,7 @@ export default function App() {
               </div>
 
               <div className="md:col-span-4 space-y-6">
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
+                <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
                     <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-6 w-full text-left">工時分佈</h3>
                     <div className="h-64 w-full">
                         {chartData.length > 0 ? (
@@ -615,7 +726,7 @@ export default function App() {
                         <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">雲端資料 ({monthlyTasks.length})</h3>
                     </div>
                     <div className="divide-y divide-slate-50 max-h-[60vh] overflow-y-auto">
-                        {monthlyTasks.length === 0 ? <div className="p-8 text-center text-slate-400">尚無紀錄</div> : monthlyTasks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((task) => (
+                        {monthlyTasks.length === 0 ? <div className="p-6 text-center text-slate-400">尚無紀錄</div> : monthlyTasks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((task) => (
                             <button key={task.id} onClick={() => setEditingTask(task)} className="w-full text-left p-4 hover:bg-slate-50 transition-colors group flex items-start gap-4">
                                 <div className="flex flex-col items-center justify-center bg-slate-100 rounded-xl w-12 h-12 shrink-0">
                                     <span className="text-[10px] text-slate-500 uppercase font-bold">{new Date(task.date).toLocaleString('en-US', { month: 'short' })}</span>
@@ -644,7 +755,7 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
                 <h3 className="text-lg font-bold">常用工作項目</h3>
-                <AddTemplateForm onAdd={handleAddTemplate} eventTypes={eventTypes} />
+                <AddTemplateForm onAdd={handleAddTemplate} eventTypes={eventTypes} templates={templates} />
                 <div className="mt-4">
                   <h4 className="font-bold mb-2">現有範本</h4>
                   <ul>
