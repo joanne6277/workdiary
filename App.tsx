@@ -12,7 +12,7 @@ import {
 import { Task, Department, EventType, UserProfile, Template, EventTypeItem } from './types';
 import { StorageService } from './services/storageService';
 import { SupabaseService } from './supabaseService';
-import { DEPARTMENT_COLORS, DEFAULT_TEMPLATES, PRODUCT_LIST } from './constants';
+import { DEPARTMENT_COLORS, DEFAULT_TEMPLATES, PRODUCT_LIST, DEFAULT_EVENT_TYPES } from './constants';
 import { Button } from './components/Button';
 import { BottomSheet } from './components/BottomSheet';
 
@@ -113,13 +113,17 @@ const AddTemplateForm = ({ onAdd, eventTypes }: { onAdd: (template: Omit<Templat
 };
 
 // --- Add Event Type Form Component ---
-const AddEventTypeForm = ({ onAdd }: { onAdd: (name: string) => void }) => {
+const AddEventTypeForm = ({ onAdd, eventTypes }: { onAdd: (name: string) => void, eventTypes: EventTypeItem[] }) => {
   const [name, setName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) {
       alert('請輸入事件類型名稱');
+      return;
+    }
+    if (eventTypes.length >= 3) {
+      alert('最多只能有三種事件類型');
       return;
     }
     onAdd(name);
@@ -129,8 +133,17 @@ const AddEventTypeForm = ({ onAdd }: { onAdd: (name: string) => void }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg bg-slate-50">
       <h4 className="font-bold">新增事件類型</h4>
-      <input type="text" placeholder="事件類型名稱" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded" />
-      <Button type="submit" fullWidth>新增事件類型</Button>
+      <input 
+        type="text" 
+        placeholder="事件類型名稱" 
+        value={name} 
+        onChange={e => setName(e.target.value)} 
+        className="w-full p-2 border rounded"
+        disabled={eventTypes.length >= 3} 
+      />
+      <Button type="submit" fullWidth disabled={eventTypes.length >= 3 || !name.trim()}>
+        {eventTypes.length >= 3 ? '已達上限' : '新增事件類型'}
+      </Button>
     </form>
   );
 };
@@ -233,7 +246,11 @@ export default function App() {
 
   // Settings state
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [eventTypes, setEventTypes] = useState<EventTypeItem[]>([]);
+  const [userEventTypes, setUserEventTypes] = useState<EventTypeItem[]>([]);
+  
+  const eventTypes = useMemo(() => {
+    return [...DEFAULT_EVENT_TYPES, ...userEventTypes];
+  }, [userEventTypes]);
 
   useEffect(() => {
     const loadedUser = StorageService.getUser();
@@ -241,7 +258,7 @@ export default function App() {
       setUser(loadedUser);
       loadTasksFromSupabase(loadedUser.name);
       loadTemplatesFromSupabase(loadedUser.name);
-      loadEventTypesFromSupabase();
+      loadUserEventTypesFromSupabase();
     }
   }, []);
 
@@ -257,9 +274,14 @@ export default function App() {
     setTemplates(data);
   };
 
-  const loadEventTypesFromSupabase = async () => {
+  const loadUserEventTypesFromSupabase = async () => {
     const data = await SupabaseService.fetchEventTypes();
-    setEventTypes(data);
+    setUserEventTypes(data);
+    if (data.length === 0) {
+      setEventType('會議');
+    } else if (!eventType) {
+      setEventType(data[0].name);
+    }
   };
 
   const handleLogin = (name: string) => {
@@ -268,7 +290,7 @@ export default function App() {
     setUser(newUser);
     loadTasksFromSupabase(name);
     loadTemplatesFromSupabase(name);
-    loadEventTypesFromSupabase();
+    loadUserEventTypesFromSupabase();
   };
 
   const handleLogout = () => {
@@ -276,7 +298,7 @@ export default function App() {
     setUser(null);
     setTasks([]);
     setTemplates([]);
-    setEventTypes([]);
+    setEventType([]);
   };
 
   const handleAddTemplate = async (template: Omit<Template, 'id'>) => {
@@ -292,16 +314,24 @@ export default function App() {
     setTemplates(templates.filter(t => t.id !== id));
   };
 
-  const handleAddEventType = async (name: string) => {
+  const handleAddUserEventType = async (name: string) => {
+    if (eventTypes.length >= 3) {
+      alert('最多只能有三種事件類型');
+      return;
+    }
     const newEventType = await SupabaseService.addEventType(name);
     if (newEventType) {
-      setEventTypes([...eventTypes, newEventType]);
+      setUserEventTypes([...userEventTypes, newEventType]);
     }
   };
 
   const handleDeleteEventType = async (id: string) => {
+    // Prevent deleting default event types
+    if (id.startsWith('default-')) {
+      return;
+    }
     await SupabaseService.deleteEventType(id);
-    setEventTypes(eventTypes.filter(et => et.id !== id));
+    setUserEventTypes(userEventTypes.filter(et => et.id !== id));
   };
 
 
@@ -415,37 +445,38 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen bg-[#f1f5f9] font-sans pb-24md:pb-6">
-      <header className="bg-white shadow-sm sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-slate-100 font-sans pb-24 md:pb-6">
+      <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div className="bg-blue-600 rounded-lg p-1.5"><Grid className="text-white w-5 h-5" /></div>
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight hidden md:block">牛馬a工作紀錄</h1>
+            <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">牛馬a工作紀錄</h1>
           </div>
           <div className="hidden md:flex bg-slate-100 p-1 rounded-xl">
-             <button onClick={() => setView('log')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'log' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>紀錄 Log</button>
-             <button onClick={() => setView('report')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'report' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>報表 Reports</button>
-             <button onClick={() => setView('settings')} className={`px-6 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'settings' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>設定 Settings</button>
+             <button onClick={() => setView('log')} className={`px-5 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'log' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>紀錄</button>
+             <button onClick={() => setView('report')} className={`px-5 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'report' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>報表</button>
+             <button onClick={() => setView('settings')} className={`px-5 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'settings' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>設定</button>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-500 hidden md:inline">Hi, {user.name}</span>
-            <button onClick={handleLogout} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full"><LogOut size={20} /></button>
+            <button onClick={handleLogout} className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"><LogOut size={20} /></button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 mt-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         {view === 'log' && (
           <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8">
-            <div className="md:col-span-5 space-y-6">
-               <div className="grid grid-cols-2 gap-3">
+            <div className="md:col-span-5 lg:col-span-4 space-y-6">
+               <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">快速帶入資料</h3>
+               <div className="grid grid-cols-2 gap-4">
                   {DEFAULT_TEMPLATES.map(t => (
-                    <button key={t.id} onClick={() => handleApplyTemplate(t)} className="flex flex-col items-center justify-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-center gap-2 group">
-                      <div className="p-2 bg-slate-50 rounded-full text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                        {t.icon === 'Users' && <Users size={20} />}
-                        {t.icon === 'HelpCircle' && <HelpCircle size={20} />}
-                        {t.icon === 'Code' && <Code size={20} />}
-                        {t.icon === 'Bug' && <Bug size={20} />}
+                    <button key={t.id} onClick={() => handleApplyTemplate(t)} className="flex flex-col items-center justify-center p-4 bg-white border border-transparent rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all text-center gap-2 group active:scale-95">
+                      <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                        {t.icon === 'Users' && <Users size={24} />}
+                        {t.icon === 'HelpCircle' && <HelpCircle size={24} />}
+                        {t.icon === 'Code' && <Code size={24} />}
+                        {t.icon === 'Bug' && <Bug size={24} />}
                       </div>
                       <span className="text-sm font-bold text-slate-700">{t.label}</span>
                     </button>
@@ -478,29 +509,29 @@ export default function App() {
               )}
             </div>
 
-            <div className="md:col-span-7 space-y-6">
-              <div id="log-form" className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
-                <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <div className="md:col-span-7 lg:col-span-8 space-y-6">
+              <div id="log-form" className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 space-y-6 border border-slate-200/50">
+                <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                   <Calendar className="text-slate-400" size={20} />
                   <input type="date" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)} className="bg-transparent font-bold text-slate-700 outline-none flex-1" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-1">部門</label>
-                        <button onClick={() => setShowDeptSheet(true)} className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 transition-colors">
+                        <button onClick={() => setShowDeptSheet(true)} className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-400 transition-colors">
                             <div className="flex items-center gap-3">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: DEPARTMENT_COLORS[dept] }} />
-                                <span className="font-bold text-slate-800 text-lg">{dept}</span>
+                                <span className="font-bold text-slate-800 text-base">{dept}</span>
                             </div>
                             <ChevronLeft className="-rotate-90 text-slate-400" size={20} />
                         </button>
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase ml-1">產品別</label>
-                        <button onClick={() => setShowProductSheet(true)} className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-colors ${product ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
+                        <button onClick={() => setShowProductSheet(true)} className={`w-full flex items-center justify-between p-4 rounded-xl border transition-colors ${product ? 'bg-blue-50/80 border-blue-200' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
                             <div className="flex items-center gap-3">
                                 <Tag className={product ? 'text-blue-500' : 'text-slate-400'} size={20} />
-                                <span className={`text-lg font-medium ${product ? 'text-blue-700' : 'text-slate-400'}`}>{product || "無 (None)"}</span>
+                                <span className={`text-base font-medium ${product ? 'text-blue-700' : 'text-slate-500'}`}>{product || "無"}</span>
                             </div>
                             <ChevronLeft className="-rotate-90 text-slate-400" size={20} />
                         </button>
@@ -508,25 +539,25 @@ export default function App() {
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">事件類型</label>
-                    <div className="bg-slate-100 p-1.5 rounded-2xl flex h-[62px]">
+                    <div className="bg-slate-100/80 p-1.5 rounded-xl flex h-14">
                         {eventTypes.map(type => (
-                            <button key={type.id} onClick={() => setEventType(type.name)} className={`flex-1 rounded-xl text-sm font-bold transition-all ${eventType === type.name ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}>{type.name}</button>
+                            <button key={type.id} onClick={() => setEventType(type.name)} className={`flex-1 rounded-lg text-sm font-bold transition-all ${eventType === type.name ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}>{type.name}</button>
                         ))}
                     </div>
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">工作內容</label>
-                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="做了什麼..." rows={3} className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 text-lg placeholder:text-slate-300 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"/>
+                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="做了什麼..." rows={3} className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50/80 text-slate-800 text-base placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"/>
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">時數</label>
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setHours(Math.max(0.25, hours - 0.25))} className="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"><Minus size={24} /></button>
+                        <button onClick={() => setHours(Math.max(0.25, hours - 0.25))} className="w-14 h-14 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"><Minus size={20} /></button>
                         <div className="flex-1 relative">
-                            <input type="number" step="0.25" min="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} className="w-full h-14 text-center text-3xl font-bold text-blue-600 bg-blue-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-200"/>
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-300 font-bold">hr</span>
+                            <input type="number" step="0.25" min="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} className="w-full h-14 text-center text-2xl font-bold text-blue-600 bg-blue-50/80 border-2 border-blue-100/80 rounded-xl outline-none focus:ring-2 focus:ring-blue-300"/>
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 font-medium">hr</span>
                         </div>
-                        <button onClick={() => setHours(hours + 0.25)} className="w-14 h-14 flex items-center justify-center rounded-2xl bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95 transition-all"><Plus size={24} /></button>
+                        <button onClick={() => setHours(hours + 0.25)} className="w-14 h-14 flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95 transition-all"><Plus size={20} /></button>
                     </div>
                 </div>
                 <Button fullWidth size="lg" onClick={handleAddToPending} icon={<Plus size={20} />}>加入待提交清單</Button>
@@ -607,10 +638,9 @@ export default function App() {
            </div>
         )}
 
-// ... (inside settings view)
+
         {view === 'settings' && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">參數設定</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
                 <h3 className="text-lg font-bold">常用工作項目</h3>
@@ -630,14 +660,16 @@ export default function App() {
 
               <div className="bg-white rounded-3xl shadow-sm p-5 space-y-5 border border-slate-100">
                 <h3 className="text-lg font-bold">事件類型管理</h3>
-                <AddEventTypeForm onAdd={handleAddEventType} />
+                <AddEventTypeForm onAdd={handleAddUserEventType} eventTypes={eventTypes} />
                 <div className="mt-4">
                   <h4 className="font-bold mb-2">現有事件類型</h4>
                   <ul>
                     {eventTypes.map(et => (
                       <li key={et.id} className="flex justify-between items-center p-2 border-b">
                         <span>{et.name}</span>
-                        <button onClick={() => handleDeleteEventType(et.id)}><Trash2 size={16} /></button>
+                        <button onClick={() => handleDeleteEventType(et.id)} disabled={et.id.startsWith('default-')}>
+                          <Trash2 size={16} className={et.id.startsWith('default-') ? 'text-slate-300' : ''}/>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -648,12 +680,10 @@ export default function App() {
         )}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-100 flex justify-around items-center h-20 pb-4 z-40 shadow-sm">
-        <button onClick={() => setView('log')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'log' ? 'text-blue-600' : 'text-slate-400'}`}><Plus size={28} strokeWidth={2.5} /><span className="text-[10px] font-bold">紀錄</span></button>
-        <div className="w-px h-8 bg-slate-100"></div>
-        <button onClick={() => setView('report')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'report' ? 'text-blue-600' : 'text-slate-400'}`}><BarChart2 size={28} strokeWidth={2.5} /><span className="text-[10px] font-bold">報表</span></button>
-        <div className="w-px h-8 bg-slate-100"></div>
-        <button onClick={() => setView('settings')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'settings' ? 'text-blue-600' : 'text-slate-400'}`}><Code size={28} strokeWidth={2.5} /><span className="text-[10px] font-bold">設定</span></button>
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white/80 backdrop-blur-sm border-t border-slate-200/80 flex justify-around items-center h-16 pb-1 z-40">
+        <button onClick={() => setView('log')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'log' ? 'text-blue-600' : 'text-slate-500'}`}><Plus size={24} /><span className="text-[11px] font-bold">紀錄</span></button>
+        <button onClick={() => setView('report')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'report' ? 'text-blue-600' : 'text-slate-500'}`}><BarChart2 size={24} /><span className="text-[11px] font-bold">報表</span></button>
+        <button onClick={() => setView('settings')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${view === 'settings' ? 'text-blue-600' : 'text-slate-500'}`}><Code size={24} /><span className="text-[11px] font-bold">設定</span></button>
       </nav>
       <BottomSheet isOpen={showDeptSheet} onClose={() => setShowDeptSheet(false)} title="選擇部門">
         <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0">{Object.values(Department).map((d) => (<button key={d} onClick={() => { setDept(d); setShowDeptSheet(false); }} className={`p-4 rounded-xl font-bold text-lg border-2 transition-all flex items-center justify-between ${dept === d ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200'}`}><span>{d}</span><div className="w-3 h-3 rounded-full" style={{ backgroundColor: DEPARTMENT_COLORS[d] }} /></button>))}</div>

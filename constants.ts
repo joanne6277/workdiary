@@ -17,6 +17,11 @@ export const PRODUCT_LIST = [
   'AL', 'ABC', 'AE', 'ACI', 'SYMSKAN', 'AS', '灰熊', '書紐'
 ];
 
+export const DEFAULT_EVENT_TYPES: {id: string, name: string}[] = [
+  { id: 'default-1', name: '會議' },
+  { id: 'default-2', name: '其他' },
+];
+
 export const DEFAULT_TEMPLATES: Template[] = [
   {
     id: 't1',
