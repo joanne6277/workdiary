@@ -329,7 +329,12 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Form State
-  const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[8]);
+// --- 建議修改為 (校正時區，確保永遠是當地的今天) ---
+const [currentDate, setCurrentDate] = useState(() => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split('T')[0];
+});
   const [dept, setDept] = useState<Department>(Department.TU_FU);
   const [eventType, setEventType] = useState<EventType>('');
   const [product, setProduct] = useState<string>('');
@@ -349,9 +354,7 @@ export default function App() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [userEventTypes, setUserEventTypes] = useState<EventTypeItem[]>([]);
   
-  const eventTypes = useMemo(() => {
-    return [...DEFAULT_EVENT_TYPES, ...userEventTypes];
-  }, [userEventTypes]);
+  const eventTypes = userEventTypes
 
   useEffect(() => {
     const loadedUser = StorageService.getUser();
@@ -384,11 +387,20 @@ export default function App() {
   };
 
   const loadUserEventTypesFromSupabase = async (userName: string) => {
-    const data = await SupabaseService.fetchEventTypes(userName);
-    setUserEventTypes(data);
+    let data = await SupabaseService.fetchEventTypes(userName);
     if (data.length === 0) {
-      setEventType('會議');
-    } else if (!eventType) {
+      const defaultTypes = ['會議', '其他']; // 這裡定義預設值
+      for (const name of defaultTypes) {
+        await SupabaseService.addEventType(name, userName);
+      }
+      // 寫入後重新抓取一次，才會拿到正確的 ID
+      data = await SupabaseService.fetchEventTypes(userName);
+    }
+
+    setUserEventTypes(data);
+    
+    // 預設選取第一個
+    if (data.length > 0 && !eventType) {
       setEventType(data[0].name);
     }
   };
@@ -407,7 +419,8 @@ export default function App() {
     setUser(null);
     setTasks([]);
     setTemplates([]);
-    setEventType([]);
+    setUserEventTypes([]);
+    setEventType('');
   };
 
   const handleAddTemplate = async (template: Omit<Template, 'id'>) => {
@@ -433,7 +446,7 @@ export default function App() {
       alert('最多只能有三種事件類型');
       return;
     }
-    const newEventType = await SupabaseService.addEventType(name, user);
+    const newEventType = await SupabaseService.addEventType(name, user.name);
     if (newEventType) {
       setUserEventTypes([...userEventTypes, newEventType]);
     }
@@ -809,7 +822,7 @@ export default function App() {
                     {eventTypes.map(et => (
                       <li key={et.id} className="flex justify-between items-center p-2 border-b">
                         <span>{et.name}</span>
-                        <button onClick={() => handleDeleteEventType(et.id)} disabled={et.id.startsWith('default-')}>
+                        <button onClick={() => handleDeleteEventType(et.id)}>
                           <Trash2 size={16} className={et.id.startsWith('default-') ? 'text-slate-300' : ''}/>
                         </button>
                       </li>

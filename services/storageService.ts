@@ -45,7 +45,15 @@ export const StorageService = {
       t.product || '',
       `"${t.description.replace(/"/g, '""')}"`, // Escape quotes
       t.hours.toFixed(2),
-      new Date(t.timestamp).toISOString()
+      new Date(t.timestamp).toLocaleString('zh-TW', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: false 
+      })
     ]);
 
     const csvContent = BOM + [
