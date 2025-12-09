@@ -5,7 +5,8 @@ export enum Department {
   YE_WU = '業務',
   CHAN_PIN = '產品',
   ICHEERS = '佳釀',
-  BOSS = '老闆本人'
+  BOSS = '總經理室',
+  OTHER = '其他'
 }
 
 export type EventType = string;
@@ -21,7 +22,7 @@ export interface Task {
   department: string;
   eventType: string;
   product?: string; // Optional
-  description: string;
+  description?: string;
   hours: number;
   timestamp: number;
 }

@@ -9,8 +9,9 @@ export const DEPARTMENT_COLORS: Record<Department, string> = {
   [Department.XUE_CHU]: '#8b5cf6', // Violet
   [Department.YE_WU]: '#f59e0b', // Amber
   [Department.CHAN_PIN]: '#ec4899', // Pink
-  [Department.ICHEERS]: '#411414ff', // Slate/Dark Red
+  [Department.ICHEERS]: '#f50c0cff', // Red
   [Department.BOSS]: '#1e293b', // Slate/Black
+  [Department.OTHER]: '#6b7280', // Gray
 };
 
 export const PRODUCT_LIST = [

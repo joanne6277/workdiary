@@ -70,8 +70,42 @@ const AVAILABLE_ICONS = ['Users', 'HelpCircle', 'Code', 'Bug', 'FileText'];
 
 // --- Auth Component ---
 const LoginScreen = ({ onLogin }: { onLogin: (name: string) => void }) => {
-// ...
-};
+  const [name, setName] = useState('');
+  
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center space-y-6">
+        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Users size={40} className="text-blue-600" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">頂級牛馬a工作紀錄</h1>
+          <p className="text-slate-500 mt-2">寫完這個就能下班了吧(・Д・)ノ</p>
+        </div>
+        
+        <div className="space-y-4 text-left">
+          <label className="block text-sm font-medium text-slate-700">哪位牛馬</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full h-14 px-4 rounded-xl border border-slate-200 bg-slate-50 text-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder="請輸入姓名"
+          />
+        </div>
+
+        <Button 
+          fullWidth 
+          size="lg" 
+          disabled={!name.trim()}
+          onClick={() => onLogin(name)}
+        >
+          開始使用
+        </Button>
+      </div>
+    </div>
+  );
+};// ...
 
 // --- Add Template Form Component ---
 const AddTemplateForm = ({ onAdd, eventTypes, templates }: { onAdd: (template: Omit<Template, 'id'>) => void, eventTypes: EventTypeItem[], templates: Template[] }) => {
@@ -189,8 +223,8 @@ const AddEventTypeForm = ({ onAdd, eventTypes }: { onAdd: (name: string) => void
       alert('請輸入事件類型名稱');
       return;
     }
-    if (eventTypes.length >= 3) {
-      alert('最多只能有三種事件類型');
+    if (eventTypes.length >= 4) {
+      alert('最多只能有四種事件類型');
       return;
     }
     onAdd(name);
@@ -209,7 +243,7 @@ const AddEventTypeForm = ({ onAdd, eventTypes }: { onAdd: (name: string) => void
         disabled={eventTypes.length >= 3} 
       />
       <Button type="submit" fullWidth disabled={eventTypes.length >= 3 || !name.trim()}>
-        {eventTypes.length >= 3 ? '已達上限' : '新增事件類型'}
+        {eventTypes.length >= 4 ? '已達上限' : '新增事件類型'}
       </Button>
     </form>
   );
@@ -295,7 +329,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Form State
-  const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[8]);
   const [dept, setDept] = useState<Department>(Department.TU_FU);
   const [eventType, setEventType] = useState<EventType>('');
   const [product, setProduct] = useState<string>('');
@@ -325,7 +359,7 @@ export default function App() {
       setUser(loadedUser);
       loadTasksFromSupabase(loadedUser.name);
       loadTemplatesFromSupabase(loadedUser.name);
-      loadUserEventTypesFromSupabase();
+      loadUserEventTypesFromSupabase(loadedUser.name);
     }
   }, []);
 
@@ -349,8 +383,8 @@ export default function App() {
     }
   };
 
-  const loadUserEventTypesFromSupabase = async () => {
-    const data = await SupabaseService.fetchEventTypes();
+  const loadUserEventTypesFromSupabase = async (userName: string) => {
+    const data = await SupabaseService.fetchEventTypes(userName);
     setUserEventTypes(data);
     if (data.length === 0) {
       setEventType('會議');
@@ -365,7 +399,7 @@ export default function App() {
     setUser(newUser);
     loadTasksFromSupabase(name);
     loadTemplatesFromSupabase(name);
-    loadUserEventTypesFromSupabase();
+    loadUserEventTypesFromSupabase(name);
   };
 
   const handleLogout = () => {
@@ -394,11 +428,12 @@ export default function App() {
   };
 
   const handleAddUserEventType = async (name: string) => {
+    if (!user) return; 
     if (eventTypes.length >= 3) {
       alert('最多只能有三種事件類型');
       return;
     }
-    const newEventType = await SupabaseService.addEventType(name);
+    const newEventType = await SupabaseService.addEventType(name, user);
     if (newEventType) {
       setUserEventTypes([...userEventTypes, newEventType]);
     }
@@ -422,10 +457,6 @@ export default function App() {
   };
 
   const handleAddToPending = () => {
-    if (!description.trim()) {
-      alert("請輸入工作內容");
-      return;
-    }
     const newTask: Task = {
       id: `temp-${Date.now()}`,
       date: currentDate,

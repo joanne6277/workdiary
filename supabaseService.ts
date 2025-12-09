@@ -192,11 +192,13 @@ export const SupabaseService = {
     if (error) console.error('Error deleting tag:', error);
   },
 
-  // --- Event Types ---
-  fetchEventTypes: async (): Promise<EventTypeItem[]> => {
+// --- Event Types ---
+  // 1. 修改 fetch：接收 userName 參數，只撈該使用者的設定
+  fetchEventTypes: async (userName: string): Promise<EventTypeItem[]> => {
     const { data, error } = await supabase
       .from('event_types')
       .select('*')
+      .eq('user_name', userName) // 關鍵修改：只抓目前使用者的
       .order('name', { ascending: true });
 
     if (error) {
@@ -206,10 +208,14 @@ export const SupabaseService = {
     return data;
   },
 
-  addEventType: async (name: string): Promise<EventTypeItem | null> => {
+  // 2. 修改 add：接收 userName 參數，寫入資料庫時標記是誰新增的
+  addEventType: async (name: string, userName: string): Promise<EventTypeItem | null> => {
     const { data, error } = await supabase
       .from('event_types')
-      .insert([{ name }])
+      .insert([{ 
+        name, 
+        user_name: userName // 關鍵修改：寫入使用者名稱
+      }])
       .select()
       .single();
 
@@ -220,6 +226,7 @@ export const SupabaseService = {
     return data;
   },
 
+  // delete 維持原樣即可，因為 ID 是唯一的
   deleteEventType: async (id: string) => {
     const { error } = await supabase.from('event_types').delete().eq('id', id);
     if (error) console.error('Error deleting event type:', error);
