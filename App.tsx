@@ -166,8 +166,17 @@ const AddTemplateForm = ({ onAdd, eventTypes, templates }: { onAdd: (template: O
         <option value="" disabled>事件類型</option>
         {eventTypes.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
       </select>
-      <input type="text" placeholder="相關產品" value={defaultProduct} onChange={e => setDefaultProduct(e.target.value)} className="w-full p-2 border rounded" disabled={templates.length >= 6} />
-      <input 
+      <select 
+        value={defaultProduct} 
+        onChange={e => setDefaultProduct(e.target.value)} 
+        className="w-full p-2 border rounded" 
+        disabled={templates.length >= 6}
+      >
+        <option value="">相關產品</option>
+        {PRODUCT_LIST.map(p => (
+          <option key={p} value={p}>{p}</option>
+        ))}
+      </select>      <input 
         type="number" 
         placeholder="預設時數" 
         step="0.25" 
@@ -288,7 +297,7 @@ const EditTaskModal = ({
            <div className="space-y-1">
              <label className="text-xs font-bold text-slate-400 uppercase">產品別</label>
              <select value={editedTask.product || ''} onChange={(e) => setEditedTask({ ...editedTask, product: e.target.value })} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-               <option value="">無 (None)</option>
+               <option value="">無</option>
                {PRODUCT_LIST.map(p => (<option key={p} value={p}>{p}</option>))}
              </select>
            </div>
@@ -844,7 +853,7 @@ const [currentDate, setCurrentDate] = useState(() => {
         <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0">{Object.values(Department).map((d) => (<button key={d} onClick={() => { setDept(d); setShowDeptSheet(false); }} className={`p-4 rounded-xl font-bold text-lg border-2 transition-all flex items-center justify-between ${dept === d ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200'}`}><span>{d}</span><div className="w-3 h-3 rounded-full" style={{ backgroundColor: DEPARTMENT_COLORS[d] }} /></button>))}</div>
       </BottomSheet>
       <BottomSheet isOpen={showProductSheet} onClose={() => setShowProductSheet(false)} title="選擇產品">
-        <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0"><button onClick={() => { setProduct(''); setShowProductSheet(false); }} className={`p-4 rounded-xl font-bold border-2 transition-all text-center ${product === '' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-400 hover:border-blue-200'}`}>無 (None)</button>{PRODUCT_LIST.map((p) => (<button key={p} onClick={() => { setProduct(p); setShowProductSheet(false); }} className={`p-4 rounded-xl font-bold border-2 transition-all text-center ${product === p ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200'}`}>{p}</button>))}</div>
+        <div className="grid grid-cols-2 gap-3 pb-8 md:pb-0">{PRODUCT_LIST.map((p) => (<button key={p} onClick={() => { setProduct(p); setShowProductSheet(false); }} className={`p-4 rounded-xl font-bold border-2 transition-all text-center ${product === p ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200'}`}>{p}</button>))}</div>
       </BottomSheet>
       <BottomSheet isOpen={showExportSheet} onClose={() => setShowExportSheet(false)} title="匯出設定">
         <div className="space-y-6 pb-8 md:pb-0">

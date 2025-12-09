@@ -15,7 +15,7 @@ export const DEPARTMENT_COLORS: Record<Department, string> = {
 };
 
 export const PRODUCT_LIST = [
-  'AL', 'ABC', 'AE', 'ACI', 'SYMSKAN', 'AS', '灰熊', '書紐'
+  '無', 'AL', 'ABC', 'AE', 'ACI', 'SYMSKAN', 'AS', '灰熊', '書紐'
 ];
 
 export const DEFAULT_EVENT_TYPES: {id: string, name: string}[] = [
