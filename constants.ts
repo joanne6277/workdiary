@@ -2,6 +2,7 @@ import { Department, Template } from './types';
 
 export const APP_STORAGE_KEY = 'easylog_v2_data';
 export const USER_STORAGE_KEY = 'easylog_v2_user';
+export const TUTORIAL_SEEN_KEY = 'easylog_v2_tutorial_seen';
 
 export const DEPARTMENT_COLORS: Record<Department, string> = {
   [Department.TU_FU]: '#3b82f6', // Blue

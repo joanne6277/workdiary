@@ -9,10 +9,11 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
+import { UserGuideModal } from './components/UserGuideModal';
 import { Task, Department, EventType, UserProfile, Template, EventTypeItem } from './types';
 import { StorageService } from './services/storageService';
 import { SupabaseService } from './supabaseService';
-import { DEPARTMENT_COLORS, PRODUCT_LIST, DEFAULT_EVENT_TYPES } from './constants';
+import { DEPARTMENT_COLORS, PRODUCT_LIST, DEFAULT_EVENT_TYPES, TUTORIAL_SEEN_KEY } from './constants';
 import { Button } from './components/Button';
 import { BottomSheet } from './components/BottomSheet';
 
@@ -331,6 +332,7 @@ const EditTaskModal = ({
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [view, setView] = useState<'log' | 'report' | 'settings'>('log');
+  const [showUserGuide, setShowUserGuide] = useState(false);
   
   // Data State
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -421,7 +423,15 @@ const [currentDate, setCurrentDate] = useState(() => {
     loadTasksFromSupabase(name);
     loadTemplatesFromSupabase(name);
     loadUserEventTypesFromSupabase(name);
+
+    const hasSeenTutorial = localStorage.getItem(TUTORIAL_SEEN_KEY);
+    if (!hasSeenTutorial) {
+      setShowUserGuide(true);
+      localStorage.setItem(TUTORIAL_SEEN_KEY, 'true');
+    }
   };
+
+  
 
   const handleLogout = () => {
     StorageService.clearUser();
@@ -586,7 +596,14 @@ const [currentDate, setCurrentDate] = useState(() => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 rounded-lg p-1.5"><Grid className="text-white w-5 h-5" /></div>
-            <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">牛馬a工作紀錄</h1>
+            <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">頂級牛馬a工作紀錄</h1>
+            <button 
+              onClick={() => setShowUserGuide(true)} 
+              className="ml-1 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+              title="使用指南"
+            >
+              <HelpCircle size={20} />
+            </button>
           </div>
           <div className="hidden md:flex bg-slate-100 p-1 rounded-xl">
              <button onClick={() => setView('log')} className={`px-5 py-1.5 text-sm font-bold rounded-lg transition-all ${view === 'log' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>紀錄</button>
@@ -865,6 +882,7 @@ const [currentDate, setCurrentDate] = useState(() => {
         </div>
       </BottomSheet>
       <EditTaskModal task={editingTask} isOpen={!!editingTask} onClose={() => setEditingTask(null)} onSave={handleUpdateTask} onDelete={handleDeleteTask} eventTypes={eventTypes} />
+      <UserGuideModal isOpen={showUserGuide} onClose={() => setShowUserGuide(false)} />
     </div>
   );
 }
