@@ -8,6 +8,11 @@ interface UserGuideModalProps {
 }
 
 // 將文字內容提取出來，這裡就像你的 "Markdown" 內容區，方便修改
+const UPDATE_INFO = {
+  version: '2025/12/19',
+  content: '新增部門: 法務、人資'
+};
+
 const GUIDE_STEPS = [
   {
     step: 1,
@@ -50,6 +55,18 @@ export const UserGuideModal: React.FC<UserGuideModalProps> = ({ isOpen, onClose 
 
         {/* Content (自動產生) */}
         <div className="p-6 space-y-6 text-slate-600">
+          {/* Updates Section */}
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+            <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+              <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">Updates</span>
+              {UPDATE_INFO.version} 更版資訊
+            </h4>
+            <p className="text-sm text-amber-900 pl-1">
+              {UPDATE_INFO.content}
+            </p>
+          </div>
+
+
           {GUIDE_STEPS.map((item) => (
             <div key={item.step} className="space-y-2">
               <h4 className="font-bold text-slate-800 flex items-center gap-2">

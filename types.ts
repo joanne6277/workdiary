@@ -4,8 +4,10 @@ export enum Department {
   XUE_CHU = '學出',
   YE_WU = '業務',
   CHAN_PIN = '產品',
-  ICHEERS = '佳釀',
+  FA_WU = '法務',
+  REN_ZI = '人資',
   BOSS = '總經理室',
+  ICHEERS = '佳釀',
   OTHER = '其他'
 }
 
@@ -49,4 +51,4 @@ export interface TagItem {
   category: 'department' | 'eventType' | 'product';
   label: string;
   color?: string;
-  }
+}
