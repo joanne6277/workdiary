@@ -11,6 +11,8 @@ export const DEPARTMENT_COLORS: Record<Department, string> = {
   [Department.YE_WU]: '#f59e0b', // Amber
   [Department.CHAN_PIN]: '#ec4899', // Pink
   [Department.ICHEERS]: '#f50c0cff', // Red
+  [Department.LEGEL]: '#14b8a6', // Teal
+  [Department.HUMAN_RESOURCES]: '#742557ff', // Purple
   [Department.BOSS]: '#1e293b', // Slate/Black
   [Department.OTHER]: '#6b7280', // Gray
 };
