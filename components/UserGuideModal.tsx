@@ -9,8 +9,8 @@ interface UserGuideModalProps {
 
 // 將文字內容提取出來，這裡就像你的 "Markdown" 內容區，方便修改
 const UPDATE_INFO = {
-  version: '2025/12/19',
-  content: '新增部門: 法務、人資'
+  version: '2026/01/20',
+  content: '更新儀錶板：可自行設定日期區間，查看個人工時比例。'
 };
 
 const GUIDE_STEPS = [

@@ -353,7 +353,20 @@ export default function App() {
   const [hours, setHours] = useState(1.0);
 
   // Report & UI State
-  const [viewMonth, setViewMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [reportStartDate, setReportStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  });
+  const [reportEndDate, setReportEndDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    d.setDate(0); // Last day of current month
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  });
+
   const [showExportSheet, setShowExportSheet] = useState(false);
   const [exportStart, setExportStart] = useState('');
   const [exportEnd, setExportEnd] = useState('');
@@ -548,22 +561,80 @@ export default function App() {
     if (formElement) window.scrollTo({ top: formElement.offsetTop, behavior: 'smooth' });
   };
 
-  const monthlyTasks = useMemo(() => {
-    return tasks.filter(t => t.date.startsWith(viewMonth));
-  }, [tasks, viewMonth]);
+  const reportTasks = useMemo(() => {
+    return tasks.filter(t => t.date >= reportStartDate && t.date <= reportEndDate);
+  }, [tasks, reportStartDate, reportEndDate]);
 
   const chartData = useMemo(() => {
     const map = new Map<Department, number>();
-    monthlyTasks.forEach(t => {
+    reportTasks.forEach(t => {
       map.set(t.department, (map.get(t.department) || 0) + t.hours);
     });
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [monthlyTasks]);
+  }, [reportTasks]);
 
-  const changeMonth = (delta: number) => {
-    const d = new Date(`${viewMonth}-01`);
-    d.setMonth(d.getMonth() + delta);
-    setViewMonth(d.toISOString().slice(0, 7));
+  const shiftDateRange = (months: number) => {
+    const start = new Date(reportStartDate);
+    const end = new Date(reportEndDate);
+
+    start.setMonth(start.getMonth() + months);
+
+    // For end date, we want to respect the month shift similarly.
+    // If it was the end of the month, we might want to keep it end of month?
+    // A simple shift of +1 month for report range often implies "Next Month".
+    // If the user has a custom range selected (e.g. 5 days), "Next Month" might be ambiguous.
+    // But typically standard behavior for "Next" in a calendar view is "Same days, next month".
+
+    // However, if the user was viewing a full month "2024-01-01" to "2024-01-31",
+    // just adding 1 month to start -> "2024-02-01".
+    // adding 1 month to end -> "2024-02-29" (leap) or "2024-02-28".
+
+    // Let's use a simpler logic for "Prev/Next":
+    // 1. Calculate the duration of the current range in days.
+    // 2. Shift the start date by +/- 1 month.
+    // 3. Set end date to match start date + duration?
+    // OR: Just shift both by 1 month.
+
+    // Let's just strictly add/sub month to the Date objects.
+    end.setMonth(end.getMonth() + months);
+
+    // Handle end-of-month edge cases automatically by Date object (e.g. Jan 31 + 1 mo -> Feb 28/29 or Mar 2/3 depending on implementation).
+    // The default setMonth behavior: "2024-01-31" + 1 month -> "2024-03-02" (because Feb only has 29 days).
+    // This might not be what users expect if they want "Feb Month".
+
+    // Special handling: if we are currently viewing "First to Last" of a month, we should probably switch to "First to Last" of next month.
+    const isFullMonth = (s: string, e: string) => {
+      const d1 = new Date(s);
+      const d2 = new Date(e);
+      const nextDay = new Date(d2);
+      nextDay.setDate(d2.getDate() + 1);
+      return d1.getDate() === 1 && nextDay.getDate() === 1 && d1.getMonth() !== nextDay.getMonth();
+    };
+
+    if (isFullMonth(reportStartDate, reportEndDate)) {
+      // It's a full calendar month. Shift to full next calendar month.
+      const newStart = new Date(reportStartDate);
+      newStart.setMonth(newStart.getMonth() + months);
+      newStart.setDate(1); // Ensure 1st
+
+      const newEnd = new Date(newStart);
+      newEnd.setMonth(newEnd.getMonth() + 1);
+      newEnd.setDate(0); // Last day of that new month
+
+      // Adjust back timezone offset to avoid issues
+      newStart.setMinutes(newStart.getMinutes() - newStart.getTimezoneOffset());
+      newEnd.setMinutes(newEnd.getMinutes() - newEnd.getTimezoneOffset());
+
+      setReportStartDate(newStart.toISOString().split('T')[0]);
+      setReportEndDate(newEnd.toISOString().split('T')[0]);
+    } else {
+      // Custom range. Just shift dates.
+      start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
+      end.setMinutes(end.getMinutes() - end.getTimezoneOffset());
+
+      setReportStartDate(start.toISOString().split('T')[0]);
+      setReportEndDate(end.toISOString().split('T')[0]);
+    }
   };
 
   const handleExport = () => {
@@ -572,6 +643,12 @@ export default function App() {
     if (filtered.length === 0) return alert("無資料");
     StorageService.exportToCSV(filtered);
     setShowExportSheet(false);
+  };
+
+  const openExportSheet = () => {
+    setExportStart(reportStartDate);
+    setExportEnd(reportEndDate);
+    setShowExportSheet(true);
   };
 
   const RADIAN = Math.PI / 180;
@@ -753,14 +830,25 @@ export default function App() {
           <div className="flex flex-col md:grid md:grid-cols-12 md:gap-8 h-full">
             <div className="md:col-span-12 flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-slate-100">
-                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><ChevronLeft size={20} /></button>
-                <div className="relative group px-2 text-center">
-                  <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{viewMonth}</div>
-                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                <button onClick={() => shiftDateRange(-1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><ChevronLeft size={20} /></button>
+                <div className="flex items-center gap-2 px-2">
+                  <input
+                    type="date"
+                    value={reportStartDate}
+                    onChange={(e) => setReportStartDate(e.target.value)}
+                    className="bg-transparent text-sm font-bold text-slate-800 outline-none cursor-pointer hover:text-blue-600 transition-colors w-[110px]"
+                  />
+                  <span className="text-slate-400">-</span>
+                  <input
+                    type="date"
+                    value={reportEndDate}
+                    onChange={(e) => setReportEndDate(e.target.value)}
+                    className="bg-transparent text-sm font-bold text-slate-800 outline-none cursor-pointer hover:text-blue-600 transition-colors w-[110px]"
+                  />
                 </div>
-                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><ChevronRight size={20} /></button>
+                <button onClick={() => shiftDateRange(1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><ChevronRight size={20} /></button>
               </div>
-              <button onClick={() => setShowExportSheet(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm"><Download size={16} />匯出 Excel</button>
+              <button onClick={openExportSheet} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm"><Download size={16} />匯出 Excel</button>
             </div>
 
             <div className="md:col-span-4 space-y-6">
@@ -787,7 +875,7 @@ export default function App() {
                         <Legend verticalAlign="bottom" height={36} iconType="circle" />
                       </PieChart>
                     </ResponsiveContainer>
-                  ) : <div className="h-full flex flex-col items-center justify-center text-slate-300"><BarChart2 size={48} className="mb-2 opacity-50" /><span className="text-sm">本月尚無數據</span></div>}
+                  ) : <div className="h-full flex flex-col items-center justify-center text-slate-300"><BarChart2 size={48} className="mb-2 opacity-50" /><span className="text-sm">本相同無數據</span></div>}
                 </div>
               </div>
             </div>
@@ -795,10 +883,10 @@ export default function App() {
             <div className="md:col-span-8 space-y-4">
               <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                  <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">雲端資料 ({monthlyTasks.length})</h3>
+                  <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">雲端資料 ({reportTasks.length})</h3>
                 </div>
                 <div className="divide-y divide-slate-50 max-h-[60vh] overflow-y-auto">
-                  {monthlyTasks.length === 0 ? <div className="p-6 text-center text-slate-400">尚無紀錄</div> : monthlyTasks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((task) => (
+                  {reportTasks.length === 0 ? <div className="p-6 text-center text-slate-400">尚無紀錄</div> : reportTasks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((task) => (
                     <button key={task.id} onClick={() => setEditingTask(task)} className="w-full text-left p-4 hover:bg-slate-50 transition-colors group flex items-start gap-4">
                       <div className="flex flex-col items-center justify-center bg-slate-100 rounded-xl w-12 h-12 shrink-0">
                         <span className="text-[10px] text-slate-500 uppercase font-bold">{new Date(task.date).toLocaleString('en-US', { month: 'short' })}</span>
